@@ -1,0 +1,244 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://postfiat.org/schemas/routing-policy/v1.0.0",
+  "title": "Post Fiat Signal Routing Policy Configuration",
+  "description": "Defines a producer's routing policy: which gates are active, what thresholds apply per symbol, and what weak-symbol interventions are configured. A routing policy is the input to preflight_filter.py alongside candidate signals. Different producers can have different policies while all conforming to the same routing protocol schema.",
+
+  "type": "object",
+  "required": ["policy_version", "producer_id", "gates", "symbols"],
+
+  "properties": {
+    "policy_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Version of this policy configuration. Producers should bump this when thresholds change."
+    },
+    "producer_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Producer this policy applies to."
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of this policy."
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this policy was generated or last updated."
+    },
+    "evidence_source": {
+      "type": "string",
+      "description": "Where the thresholds came from (e.g. 'proof_surface.json March 26 2026', 'backtest_2492_signals')."
+    },
+
+    "gates": {
+      "type": "object",
+      "description": "Gate configuration. Each gate can be enabled/disabled independently. All enabled gates must pass for a signal to be emitted (AND logic). INVERT logic is applied post-gates for configured symbols.",
+      "properties": {
+
+        "regime_gate": {
+          "type": "object",
+          "description": "Suppresses signals during unfavorable regimes. A regime_id not in the allowed list causes WITHHOLD.",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "allowed_regimes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["SYSTEMIC", "NEUTRAL", "DIVERGENCE", "EARNINGS", "UNKNOWN"]
+              },
+              "description": "Regimes in which signals may be emitted. Signals during other regimes are withheld."
+            },
+            "description": {
+              "type": "string",
+              "description": "Why these regimes were selected."
+            }
+          },
+          "additionalProperties": false
+        },
+
+        "duration_gate": {
+          "type": "object",
+          "description": "Suppresses signals when the current regime is too young. Early-regime signals have lower accuracy in backtest evidence (e.g. 38.6% at 10-15d vs 58.9% at 15d+).",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "default_min_days": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Default minimum regime duration (days) for all symbols. Per-symbol overrides take precedence."
+            },
+            "description": {
+              "type": "string",
+              "description": "Backtest evidence for this threshold."
+            }
+          },
+          "additionalProperties": false
+        },
+
+        "confidence_gate": {
+          "type": "object",
+          "description": "Suppresses signals with confidence below a minimum. Low-confidence signals have negative expected karma.",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "default_min_confidence": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0,
+              "description": "Default minimum confidence for all symbols. Per-symbol overrides take precedence."
+            },
+            "description": {
+              "type": "string",
+              "description": "Backtest evidence for this threshold."
+            }
+          },
+          "additionalProperties": false
+        },
+
+        "voi_gate": {
+          "type": "object",
+          "description": "Suppresses signals with negative expected karma (VOI < threshold). VOI = E[karma|send] - E[karma|withhold]. This is the core decision-theoretic gate: only send if sending adds expected value.",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "min_voi": {
+              "type": "number",
+              "description": "Minimum VOI threshold. Default 0.0 (only send if positive expected karma). Can be set higher to be more selective."
+            },
+            "use_hazard_adjustment": {
+              "type": "boolean",
+              "default": false,
+              "description": "Whether to apply Weibull hazard adjustment to VOI (discounts by regime survival probability)."
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+
+        "weak_symbol_gate": {
+          "type": "object",
+          "description": "Handles symbols with known weakness. Does NOT withhold by default — instead routes to INVERT when justified, or WITHHOLD when weakness is detected but inversion is not justified.",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "severity_threshold": {
+              "type": "string",
+              "enum": ["MILD", "MODERATE", "SEVERE"],
+              "description": "Minimum weakness severity to trigger intervention. Symbols below this threshold pass through unmodified."
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "symbols": {
+      "type": "object",
+      "description": "Per-symbol routing configuration. Keys are symbol tickers (uppercase). Symbols not listed use the global defaults from gates.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "min_duration_days": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Override duration gate threshold for this symbol."
+          },
+          "min_confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "description": "Override confidence gate threshold for this symbol."
+          },
+          "weak_symbol_policy": {
+            "type": "string",
+            "enum": ["NONE", "INVERT", "EXCLUDE", "REDUCE_WEIGHT"],
+            "description": "Intervention policy for this symbol. NONE = no intervention. INVERT = flip direction. EXCLUDE = always withhold. REDUCE_WEIGHT = scale confidence by weight_factor."
+          },
+          "weight_factor": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "description": "Confidence scaling factor when weak_symbol_policy=REDUCE_WEIGHT. new_confidence = 0.5 + weight_factor * (original - 0.5)."
+          },
+          "weakness_score": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "description": "Measured weakness score for this symbol (from evaluator)."
+          },
+          "weakness_severity": {
+            "type": "string",
+            "enum": ["NONE", "MILD", "MODERATE", "SEVERE"],
+            "description": "Measured weakness severity."
+          },
+          "inversion_justified": {
+            "type": "boolean",
+            "description": "Whether inversion is statistically justified (CI excludes 50%, n >= 100)."
+          },
+          "inversion_p_value": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "description": "P-value for inversion z-test."
+          },
+          "accuracy": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "description": "Historical accuracy for this symbol."
+          },
+          "voi_cells": {
+            "type": "object",
+            "description": "Pre-computed VOI by duration bucket for this symbol. Keys are bucket labels (e.g. 'early', 'mid', 'mature', 'late').",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "voi": { "type": "number" },
+                "accuracy": { "type": "number" },
+                "n": { "type": "integer" },
+                "e_karma_send": { "type": "number" }
+              }
+            }
+          },
+          "description": {
+            "type": "string",
+            "description": "Why this symbol has these overrides."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+
+    "duration_buckets": {
+      "type": "array",
+      "description": "Duration bucket definitions. Default: early (0-12d), mid (12-15d), mature (15-18d), late (18d+). Used for VOI cell lookup.",
+      "items": {
+        "type": "object",
+        "required": ["label", "min_days", "max_days"],
+        "properties": {
+          "label": { "type": "string" },
+          "min_days": { "type": "number", "minimum": 0 },
+          "max_days": { "type": "number" }
+        }
+      }
+    },
+
+    "weibull_params": {
+      "type": "object",
+      "description": "Weibull parameters per regime for hazard-adjusted VOI. Keys are regime IDs.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "shape": { "type": "number", "exclusiveMinimum": 0 },
+          "scale": { "type": "number", "exclusiveMinimum": 0 }
+        }
+      }
+    }
+  },
+
+  "additionalProperties": false
+}

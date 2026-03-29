@@ -1,0 +1,98 @@
+[
+  {
+    "signal_id": "pf-BTC-1774900000",
+    "producer_id": "post-fiat-signals",
+    "timestamp": "2026-03-29T16:00:00Z",
+    "symbol": "BTC",
+    "direction": "bullish",
+    "confidence": 0.55,
+    "horizon_hours": 24,
+    "action": "EXECUTE",
+    "schema_version": "1.0.0",
+    "regime_context": {
+      "regime_id": "SYSTEMIC",
+      "regime_confidence": 0.77,
+      "duration_days": 16
+    }
+  },
+  {
+    "signal_id": "pf-ETH-1774900000",
+    "producer_id": "post-fiat-signals",
+    "timestamp": "2026-03-29T16:00:00Z",
+    "symbol": "ETH",
+    "direction": "bullish",
+    "confidence": 0.53,
+    "horizon_hours": 24,
+    "action": "EXECUTE",
+    "schema_version": "1.0.0",
+    "regime_context": {
+      "regime_id": "SYSTEMIC",
+      "regime_confidence": 0.77,
+      "duration_days": 16
+    }
+  },
+  {
+    "signal_id": "pf-SOL-1774900000",
+    "producer_id": "post-fiat-signals",
+    "timestamp": "2026-03-29T16:00:00Z",
+    "symbol": "SOL",
+    "direction": "bearish",
+    "confidence": 0.52,
+    "horizon_hours": 24,
+    "action": "EXECUTE",
+    "schema_version": "1.0.0",
+    "regime_context": {
+      "regime_id": "SYSTEMIC",
+      "regime_confidence": 0.77,
+      "duration_days": 16
+    }
+  },
+  {
+    "signal_id": "pf-LINK-1774900000",
+    "producer_id": "post-fiat-signals",
+    "timestamp": "2026-03-29T16:00:00Z",
+    "symbol": "LINK",
+    "direction": "bullish",
+    "confidence": 0.51,
+    "horizon_hours": 24,
+    "action": "EXECUTE",
+    "schema_version": "1.0.0",
+    "regime_context": {
+      "regime_id": "SYSTEMIC",
+      "regime_confidence": 0.77,
+      "duration_days": 16
+    }
+  },
+  {
+    "signal_id": "pf-BTC-1774800000",
+    "producer_id": "post-fiat-signals",
+    "timestamp": "2026-03-29T12:00:00Z",
+    "symbol": "BTC",
+    "direction": "bearish",
+    "confidence": 0.20,
+    "horizon_hours": 24,
+    "action": "EXECUTE",
+    "schema_version": "1.0.0",
+    "regime_context": {
+      "regime_id": "SYSTEMIC",
+      "regime_confidence": 0.77,
+      "duration_days": 10
+    }
+  },
+  {
+    "signal_id": "pf-ETH-1774800000",
+    "producer_id": "post-fiat-signals",
+    "timestamp": "2026-03-29T12:00:00Z",
+    "symbol": "ETH",
+    "direction": "bullish",
+    "confidence": 0.48,
+    "horizon_hours": 24,
+    "action": "EXECUTE",
+    "schema_version": "1.0.0",
+    "regime_context": {
+      "regime_id": "EARNINGS",
+      "regime_confidence": 0.60,
+      "duration_days": 3
+    }
+  }
+]

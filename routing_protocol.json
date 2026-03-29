@@ -1,0 +1,371 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://postfiat.org/schemas/routing-protocol/v1.0.0",
+  "title": "Post Fiat Signal Routing Protocol",
+  "description": "Canonical pre-flight routing contract for the Post Fiat network. Defines how a producer decides which signals to EMIT, WITHHOLD, or INVERT before sending to downstream consumers. Companion to pf-signal-schema (what a signal looks like) and pf-resolution-protocol (how a signal is scored). This protocol defines the decision layer between signal generation and signal emission. Any producer can adopt this protocol to replace ad-hoc filtering with auditable, evidence-based routing.",
+
+  "$defs": {
+
+    "semver": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Semantic version string (MAJOR.MINOR.PATCH)."
+    },
+
+    "iso_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp with timezone."
+    },
+
+    "routing_action": {
+      "type": "string",
+      "enum": ["EMIT", "WITHHOLD", "INVERT"],
+      "description": "Routing verdict for a candidate signal. EMIT = send as-is (maps to signal schema action=EXECUTE). WITHHOLD = suppress (maps to signal schema action=WITHHOLD). INVERT = flip direction before sending (maps to signal schema action=INVERT). The routing protocol uses EMIT rather than EXECUTE to distinguish the routing decision from the signal-level action field."
+    },
+
+    "gate_result": {
+      "type": "object",
+      "description": "Result of a single pre-flight gate check. Each gate is a binary pass/fail test with the threshold that was applied and the actual value that was measured.",
+      "required": ["gate_id", "passed", "threshold", "actual"],
+      "properties": {
+        "gate_id": {
+          "type": "string",
+          "description": "Machine-readable gate identifier. Standard gates: 'regime_gate', 'duration_gate', 'confidence_gate', 'voi_gate', 'weak_symbol_gate'.",
+          "examples": ["regime_gate", "duration_gate", "confidence_gate", "voi_gate", "weak_symbol_gate"]
+        },
+        "passed": {
+          "type": "boolean",
+          "description": "Whether the signal passed this gate."
+        },
+        "threshold": {
+          "description": "The threshold value or condition that was applied. Type varies by gate: number for numeric thresholds, string for enum checks, object for compound conditions.",
+          "examples": [15.0, 0.30, "NEUTRAL", {"min_voi": 0.0}]
+        },
+        "actual": {
+          "description": "The actual measured value for this signal. Same type as threshold for comparability.",
+          "examples": [12.5, 0.42, "SYSTEMIC", -0.003]
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable explanation of why the gate passed or failed.",
+          "examples": ["duration 12.5d < 15.0d minimum", "VOI +0.012 > 0.0 threshold"]
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "voi_computation": {
+      "type": "object",
+      "description": "Value-of-Information computation for a single signal. VOI = E[karma|send] - E[karma|withhold]. A signal should be sent iff VOI > 0. The VOI incorporates accuracy, confidence, and optionally a hazard adjustment for regime duration.",
+      "required": ["e_karma_send", "e_karma_withhold", "voi"],
+      "properties": {
+        "e_karma_send": {
+          "type": "number",
+          "description": "Expected karma if signal is sent. E[karma|send] = confidence * (2 * P(correct) - 1) for a given (symbol, duration_bucket) cell. Positive when accuracy > 50%, negative when accuracy < 50%."
+        },
+        "e_karma_withhold": {
+          "type": "number",
+          "description": "Expected karma if signal is withheld. Always 0.0 (not sending = no karma change). Included explicitly so the decision framework is transparent."
+        },
+        "voi": {
+          "type": "number",
+          "description": "Value of information: e_karma_send - e_karma_withhold. Positive = sending adds expected value. Negative = withholding is optimal."
+        },
+        "accuracy_estimate": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Estimated P(correct) for this (symbol, duration_bucket) cell. Source: historical proof surface or backtest."
+        },
+        "sample_size": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of historical signals in this cell. Low sample sizes (< 30) reduce reliability of the VOI estimate."
+        },
+        "hazard_adjustment": {
+          "type": "object",
+          "description": "Optional Weibull hazard adjustment. Higher hazard = regime more likely to end = signal less reliable.",
+          "properties": {
+            "hazard_rate": {
+              "type": "number",
+              "minimum": 0.0,
+              "description": "Weibull hazard h(t) = (k/lambda) * (t/lambda)^(k-1) at the current regime duration."
+            },
+            "survival_probability": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0,
+              "description": "Weibull survival S(t) = exp(-(t/lambda)^k). Probability the regime persists."
+            },
+            "hazard_adjusted_voi": {
+              "type": "number",
+              "description": "VOI discounted by survival probability: voi * S(t)."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "weak_symbol_diagnosis": {
+      "type": "object",
+      "description": "Diagnosis of symbol-level weakness. A weak symbol has accuracy consistently below 50%, making it a candidate for INVERT or WITHHOLD. Composite score from 5 components: accuracy_deficit, reliability_gap, karma_drag, brier_excess, directional_bias.",
+      "required": ["weakness_score", "severity"],
+      "properties": {
+        "weakness_score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Composite weakness score (0 = strong, 1 = maximally weak). Weighted sum of 5 components."
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["NONE", "MILD", "MODERATE", "SEVERE"],
+          "description": "Human-readable severity. NONE < 0.20, MILD < 0.40, MODERATE < 0.60, SEVERE >= 0.60."
+        },
+        "accuracy": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Symbol-level accuracy (point estimate)."
+        },
+        "ci_lower": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Wilson CI lower bound on accuracy."
+        },
+        "ci_upper": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Wilson CI upper bound on accuracy."
+        },
+        "ci_excludes_50": {
+          "type": "boolean",
+          "description": "Whether the entire 90% CI is below 50%. Strong evidence for inversion."
+        },
+        "inversion_justified": {
+          "type": "boolean",
+          "description": "Whether INVERT is statistically justified (CI excludes 50% AND n >= 100)."
+        },
+        "inversion_p_value": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Two-proportion z-test p-value for inversion improvement."
+        },
+        "components": {
+          "type": "object",
+          "description": "5-component breakdown. Keys: accuracy_deficit, reliability_gap, karma_drag, brier_excess, directional_bias. Each has score (0-1) and weight.",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "routing_decision": {
+      "type": "object",
+      "description": "Complete routing decision for a single candidate signal. Includes the verdict, all gate results, optional VOI computation, and audit trail.",
+      "required": ["signal_id", "symbol", "action", "gates_passed", "gates_failed", "rationale"],
+      "properties": {
+        "signal_id": {
+          "type": "string",
+          "description": "ID of the candidate signal being routed."
+        },
+        "symbol": {
+          "type": "string",
+          "description": "Ticker symbol of the candidate signal."
+        },
+        "action": {
+          "$ref": "#/$defs/routing_action",
+          "description": "Final routing verdict."
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Original confidence of the candidate signal."
+        },
+        "direction": {
+          "type": "string",
+          "enum": ["bullish", "bearish"],
+          "description": "Original direction of the candidate signal."
+        },
+        "routed_direction": {
+          "type": "string",
+          "enum": ["bullish", "bearish"],
+          "description": "Direction after routing. Same as original for EMIT, flipped for INVERT, absent for WITHHOLD."
+        },
+        "gates_passed": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/gate_result" },
+          "description": "Gates that the signal passed."
+        },
+        "gates_failed": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/gate_result" },
+          "description": "Gates that the signal failed. If any gate fails, the signal is withheld (unless overridden by INVERT logic)."
+        },
+        "voi": {
+          "$ref": "#/$defs/voi_computation",
+          "description": "VOI computation details (present when VOI gate is configured)."
+        },
+        "weak_symbol": {
+          "$ref": "#/$defs/weak_symbol_diagnosis",
+          "description": "Weak symbol diagnosis (present when the symbol has a configured weakness policy)."
+        },
+        "rationale": {
+          "type": "string",
+          "description": "Human-readable explanation of the routing decision. Single sentence summarizing why this signal was emitted, withheld, or inverted.",
+          "examples": [
+            "EMIT: all 4 gates passed, VOI +0.024",
+            "WITHHOLD: duration 12d < 15d minimum for BTC",
+            "INVERT: SOL weakness SEVERE (0.70), CI excludes 50%, p=0.0001"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "routing_report": {
+      "type": "object",
+      "title": "Routing Decision Report",
+      "description": "Complete pre-flight routing report for a batch of candidate signals. Primary output of preflight_filter.py. Contains per-signal routing decisions, summary statistics, and the routing configuration used.",
+      "required": ["meta", "summary", "decisions", "protocol_version"],
+      "properties": {
+        "meta": {
+          "type": "object",
+          "required": ["producer_id", "generated_at", "protocol_version", "signal_schema_version"],
+          "properties": {
+            "producer_id": {
+              "type": "string",
+              "description": "Producer whose signals are being routed."
+            },
+            "generated_at": {
+              "$ref": "#/$defs/iso_timestamp"
+            },
+            "protocol_version": {
+              "$ref": "#/$defs/semver",
+              "description": "Version of this routing protocol."
+            },
+            "signal_schema_version": {
+              "$ref": "#/$defs/semver",
+              "description": "Version of pf-signal-schema the input signals conform to."
+            },
+            "config_version": {
+              "$ref": "#/$defs/semver",
+              "description": "Version of the routing configuration used."
+            },
+            "regime_context": {
+              "type": "object",
+              "description": "Regime state at routing time.",
+              "properties": {
+                "regime_id": { "type": "string" },
+                "duration_days": { "type": "number" },
+                "regime_confidence": { "type": "number" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "summary": {
+          "type": "object",
+          "required": ["total_input", "total_emit", "total_withhold", "total_invert", "filter_rate"],
+          "properties": {
+            "total_input": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of candidate signals evaluated."
+            },
+            "total_emit": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Signals routed to EMIT."
+            },
+            "total_withhold": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Signals routed to WITHHOLD."
+            },
+            "total_invert": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Signals routed to INVERT (direction flipped)."
+            },
+            "filter_rate": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0,
+              "description": "Fraction of signals withheld: total_withhold / total_input."
+            },
+            "invert_rate": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0,
+              "description": "Fraction of signals inverted: total_invert / total_input."
+            },
+            "per_gate_pass_rates": {
+              "type": "object",
+              "description": "Pass rate per gate across all signals. Keys are gate IDs, values are pass rates (0-1).",
+              "additionalProperties": {
+                "type": "number",
+                "minimum": 0.0,
+                "maximum": 1.0
+              }
+            },
+            "per_symbol_summary": {
+              "type": "object",
+              "description": "Per-symbol routing breakdown. Keys are symbol tickers.",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "total": { "type": "integer" },
+                  "emit": { "type": "integer" },
+                  "withhold": { "type": "integer" },
+                  "invert": { "type": "integer" }
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "decisions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/routing_decision" },
+          "description": "Per-signal routing decisions in input order."
+        },
+        "config_snapshot": {
+          "type": "object",
+          "description": "Snapshot of the routing configuration used for this report. Enables audit: anyone can reproduce the routing decisions given the same config + input signals.",
+          "additionalProperties": true
+        },
+        "protocol_version": {
+          "$ref": "#/$defs/semver"
+        },
+        "limitations": {
+          "type": "array",
+          "description": "Structured limitations detected during routing.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "description": { "type": "string" },
+              "bias_direction": {
+                "type": "string",
+                "enum": ["OVERSTATED", "UNDERSTATED", "INDETERMINATE", "NONE"]
+              },
+              "bias_magnitude": { "type": "string" }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+
+  "$ref": "#/$defs/routing_report"
+}

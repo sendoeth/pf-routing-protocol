@@ -1,0 +1,661 @@
+{
+  "meta": {
+    "producer_id": "post-fiat-signals",
+    "generated_at": "2026-03-29T14:24:17.255616+00:00",
+    "protocol_version": "1.0.0",
+    "signal_schema_version": "1.0.0",
+    "config_version": "1.0.0",
+    "regime_context": {
+      "regime_id": "SYSTEMIC",
+      "duration_days": 16.0,
+      "regime_confidence": 0.5
+    }
+  },
+  "summary": {
+    "total_input": 6,
+    "total_emit": 4,
+    "total_withhold": 1,
+    "total_invert": 1,
+    "filter_rate": 0.1667,
+    "invert_rate": 0.1667,
+    "per_gate_pass_rates": {
+      "regime_gate": 1.0,
+      "duration_gate": 1.0,
+      "confidence_gate": 0.8333,
+      "voi_gate": 1.0,
+      "weak_symbol_gate": 0.8333
+    },
+    "per_symbol_summary": {
+      "BTC": {
+        "total": 2,
+        "emit": 1,
+        "withhold": 1,
+        "invert": 0
+      },
+      "ETH": {
+        "total": 2,
+        "emit": 2,
+        "withhold": 0,
+        "invert": 0
+      },
+      "SOL": {
+        "total": 1,
+        "emit": 0,
+        "withhold": 0,
+        "invert": 1
+      },
+      "LINK": {
+        "total": 1,
+        "emit": 1,
+        "withhold": 0,
+        "invert": 0
+      }
+    }
+  },
+  "decisions": [
+    {
+      "signal_id": "pf-BTC-1774900000",
+      "symbol": "BTC",
+      "action": "EMIT",
+      "confidence": 0.55,
+      "direction": "bullish",
+      "gates_passed": [
+        {
+          "gate_id": "regime_gate",
+          "passed": true,
+          "threshold": [
+            "NEUTRAL",
+            "SYSTEMIC",
+            "DIVERGENCE"
+          ],
+          "actual": "SYSTEMIC",
+          "description": "regime SYSTEMIC in allowed list ['NEUTRAL', 'SYSTEMIC', 'DIVERGENCE']"
+        },
+        {
+          "gate_id": "duration_gate",
+          "passed": true,
+          "threshold": 15,
+          "actual": 16.0,
+          "description": "duration 16.0d >=  15d"
+        },
+        {
+          "gate_id": "confidence_gate",
+          "passed": true,
+          "threshold": 0.3,
+          "actual": 0.55,
+          "description": "confidence 0.550 >=  0.300"
+        },
+        {
+          "gate_id": "voi_gate",
+          "passed": true,
+          "threshold": {
+            "min_voi": 0.0
+          },
+          "actual": 0.044,
+          "description": "VOI +0.0440 >=  0.0"
+        },
+        {
+          "gate_id": "weak_symbol_gate",
+          "passed": true,
+          "threshold": "MODERATE",
+          "actual": "NONE",
+          "description": "BTC weakness NONE below MODERATE threshold"
+        }
+      ],
+      "gates_failed": [],
+      "rationale": "EMIT: all 5 gates passed, VOI +0.0440",
+      "routed_direction": "bullish",
+      "voi": {
+        "e_karma_send": 0.044,
+        "e_karma_withhold": 0.0,
+        "voi": 0.044,
+        "accuracy_estimate": 0.54,
+        "sample_size": 120
+      }
+    },
+    {
+      "signal_id": "pf-ETH-1774900000",
+      "symbol": "ETH",
+      "action": "EMIT",
+      "confidence": 0.53,
+      "direction": "bullish",
+      "gates_passed": [
+        {
+          "gate_id": "regime_gate",
+          "passed": true,
+          "threshold": [
+            "NEUTRAL",
+            "SYSTEMIC",
+            "DIVERGENCE"
+          ],
+          "actual": "SYSTEMIC",
+          "description": "regime SYSTEMIC in allowed list ['NEUTRAL', 'SYSTEMIC', 'DIVERGENCE']"
+        },
+        {
+          "gate_id": "duration_gate",
+          "passed": true,
+          "threshold": 15,
+          "actual": 16.0,
+          "description": "duration 16.0d >=  15d"
+        },
+        {
+          "gate_id": "confidence_gate",
+          "passed": true,
+          "threshold": 0.3,
+          "actual": 0.53,
+          "description": "confidence 0.530 >=  0.300"
+        },
+        {
+          "gate_id": "voi_gate",
+          "passed": true,
+          "threshold": {
+            "min_voi": 0.0
+          },
+          "actual": 0.0742,
+          "description": "VOI +0.0742 >=  0.0"
+        },
+        {
+          "gate_id": "weak_symbol_gate",
+          "passed": true,
+          "threshold": "MODERATE",
+          "actual": "NONE",
+          "description": "ETH weakness NONE below MODERATE threshold"
+        }
+      ],
+      "gates_failed": [],
+      "rationale": "EMIT: all 5 gates passed, VOI +0.0742",
+      "routed_direction": "bullish",
+      "voi": {
+        "e_karma_send": 0.0742,
+        "e_karma_withhold": 0.0,
+        "voi": 0.0742,
+        "accuracy_estimate": 0.57,
+        "sample_size": 120
+      }
+    },
+    {
+      "signal_id": "pf-SOL-1774900000",
+      "symbol": "SOL",
+      "action": "INVERT",
+      "confidence": 0.52,
+      "direction": "bearish",
+      "gates_passed": [
+        {
+          "gate_id": "regime_gate",
+          "passed": true,
+          "threshold": [
+            "NEUTRAL",
+            "SYSTEMIC",
+            "DIVERGENCE"
+          ],
+          "actual": "SYSTEMIC",
+          "description": "regime SYSTEMIC in allowed list ['NEUTRAL', 'SYSTEMIC', 'DIVERGENCE']"
+        },
+        {
+          "gate_id": "duration_gate",
+          "passed": true,
+          "threshold": 0,
+          "actual": 16.0,
+          "description": "duration 16.0d >=  0d"
+        },
+        {
+          "gate_id": "confidence_gate",
+          "passed": true,
+          "threshold": 0.05,
+          "actual": 0.52,
+          "description": "confidence 0.520 >=  0.050"
+        },
+        {
+          "gate_id": "voi_gate",
+          "passed": true,
+          "threshold": {
+            "min_voi": 0.0
+          },
+          "actual": 0.1248,
+          "description": "VOI +0.1248 >=  0.0"
+        }
+      ],
+      "gates_failed": [
+        {
+          "gate_id": "weak_symbol_gate",
+          "passed": false,
+          "threshold": "MODERATE",
+          "actual": "SEVERE",
+          "description": "SOL weakness SEVERE >= MODERATE threshold"
+        }
+      ],
+      "rationale": "INVERT: SOL weakness SEVERE (0.70), inversion justified p=0.0001",
+      "routed_direction": "bullish",
+      "voi": {
+        "e_karma_send": 0.1248,
+        "e_karma_withhold": 0.0,
+        "voi": 0.1248,
+        "accuracy_estimate": 0.62,
+        "sample_size": 120
+      },
+      "weak_symbol": {
+        "weakness_score": 0.6979,
+        "severity": "SEVERE",
+        "accuracy": 0.44,
+        "ci_lower": 0.39,
+        "ci_upper": 0.49,
+        "ci_excludes_50": true,
+        "inversion_justified": true,
+        "inversion_p_value": 0.0001
+      }
+    },
+    {
+      "signal_id": "pf-LINK-1774900000",
+      "symbol": "LINK",
+      "action": "EMIT",
+      "confidence": 0.51,
+      "direction": "bullish",
+      "gates_passed": [
+        {
+          "gate_id": "regime_gate",
+          "passed": true,
+          "threshold": [
+            "NEUTRAL",
+            "SYSTEMIC",
+            "DIVERGENCE"
+          ],
+          "actual": "SYSTEMIC",
+          "description": "regime SYSTEMIC in allowed list ['NEUTRAL', 'SYSTEMIC', 'DIVERGENCE']"
+        },
+        {
+          "gate_id": "duration_gate",
+          "passed": true,
+          "threshold": 15,
+          "actual": 16.0,
+          "description": "duration 16.0d >=  15d"
+        },
+        {
+          "gate_id": "confidence_gate",
+          "passed": true,
+          "threshold": 0.3,
+          "actual": 0.51,
+          "description": "confidence 0.510 >=  0.300"
+        },
+        {
+          "gate_id": "voi_gate",
+          "passed": true,
+          "threshold": {
+            "min_voi": 0.0
+          },
+          "actual": 0.0918,
+          "description": "VOI +0.0918 >=  0.0"
+        },
+        {
+          "gate_id": "weak_symbol_gate",
+          "passed": true,
+          "threshold": "MODERATE",
+          "actual": "NONE",
+          "description": "LINK weakness NONE below MODERATE threshold"
+        }
+      ],
+      "gates_failed": [],
+      "rationale": "EMIT: all 5 gates passed, VOI +0.0918",
+      "routed_direction": "bullish",
+      "voi": {
+        "e_karma_send": 0.0918,
+        "e_karma_withhold": 0.0,
+        "voi": 0.0918,
+        "accuracy_estimate": 0.59,
+        "sample_size": 120
+      }
+    },
+    {
+      "signal_id": "pf-BTC-1774800000",
+      "symbol": "BTC",
+      "action": "WITHHOLD",
+      "confidence": 0.2,
+      "direction": "bearish",
+      "gates_passed": [
+        {
+          "gate_id": "regime_gate",
+          "passed": true,
+          "threshold": [
+            "NEUTRAL",
+            "SYSTEMIC",
+            "DIVERGENCE"
+          ],
+          "actual": "SYSTEMIC",
+          "description": "regime SYSTEMIC in allowed list ['NEUTRAL', 'SYSTEMIC', 'DIVERGENCE']"
+        },
+        {
+          "gate_id": "duration_gate",
+          "passed": true,
+          "threshold": 15,
+          "actual": 16.0,
+          "description": "duration 16.0d >=  15d"
+        },
+        {
+          "gate_id": "voi_gate",
+          "passed": true,
+          "threshold": {
+            "min_voi": 0.0
+          },
+          "actual": 0.016,
+          "description": "VOI +0.0160 >=  0.0"
+        },
+        {
+          "gate_id": "weak_symbol_gate",
+          "passed": true,
+          "threshold": "MODERATE",
+          "actual": "NONE",
+          "description": "BTC weakness NONE below MODERATE threshold"
+        }
+      ],
+      "gates_failed": [
+        {
+          "gate_id": "confidence_gate",
+          "passed": false,
+          "threshold": 0.3,
+          "actual": 0.2,
+          "description": "confidence 0.200 < 0.300 minimum"
+        }
+      ],
+      "rationale": "WITHHOLD: confidence 0.200 < 0.300 minimum",
+      "voi": {
+        "e_karma_send": 0.016,
+        "e_karma_withhold": 0.0,
+        "voi": 0.016,
+        "accuracy_estimate": 0.54,
+        "sample_size": 120
+      }
+    },
+    {
+      "signal_id": "pf-ETH-1774800000",
+      "symbol": "ETH",
+      "action": "EMIT",
+      "confidence": 0.48,
+      "direction": "bullish",
+      "gates_passed": [
+        {
+          "gate_id": "regime_gate",
+          "passed": true,
+          "threshold": [
+            "NEUTRAL",
+            "SYSTEMIC",
+            "DIVERGENCE"
+          ],
+          "actual": "SYSTEMIC",
+          "description": "regime SYSTEMIC in allowed list ['NEUTRAL', 'SYSTEMIC', 'DIVERGENCE']"
+        },
+        {
+          "gate_id": "duration_gate",
+          "passed": true,
+          "threshold": 15,
+          "actual": 16.0,
+          "description": "duration 16.0d >=  15d"
+        },
+        {
+          "gate_id": "confidence_gate",
+          "passed": true,
+          "threshold": 0.3,
+          "actual": 0.48,
+          "description": "confidence 0.480 >=  0.300"
+        },
+        {
+          "gate_id": "voi_gate",
+          "passed": true,
+          "threshold": {
+            "min_voi": 0.0
+          },
+          "actual": 0.0672,
+          "description": "VOI +0.0672 >=  0.0"
+        },
+        {
+          "gate_id": "weak_symbol_gate",
+          "passed": true,
+          "threshold": "MODERATE",
+          "actual": "NONE",
+          "description": "ETH weakness NONE below MODERATE threshold"
+        }
+      ],
+      "gates_failed": [],
+      "rationale": "EMIT: all 5 gates passed, VOI +0.0672",
+      "routed_direction": "bullish",
+      "voi": {
+        "e_karma_send": 0.0672,
+        "e_karma_withhold": 0.0,
+        "voi": 0.0672,
+        "accuracy_estimate": 0.57,
+        "sample_size": 120
+      }
+    }
+  ],
+  "config_snapshot": {
+    "policy_version": "1.0.0",
+    "producer_id": "post-fiat-signals",
+    "description": "Routing policy for the post-fiat-signals crypto producer. Derived from 2,128 resolved signals across 7-day forward-test window (March 19-26, 2026). Regime: SYSTEMIC. Evidence: proof_surface.json, weak_symbol_evaluator.py, signal_voi_router.py.",
+    "generated_at": "2026-03-29T17:00:00Z",
+    "evidence_source": "proof_surface.json 2,128 resolved signals, SYSTEMIC regime, March 19-26 2026",
+    "gates": {
+      "regime_gate": {
+        "enabled": true,
+        "allowed_regimes": [
+          "NEUTRAL",
+          "SYSTEMIC",
+          "DIVERGENCE"
+        ],
+        "description": "EARNINGS excluded: short duration + event-driven, unreliable. NEUTRAL is most actionable (82% hit rate for CRYPTO_LEADS). SYSTEMIC = NO_TRADE discipline but signals still produced for record-keeping."
+      },
+      "duration_gate": {
+        "enabled": true,
+        "default_min_days": 15,
+        "description": "38.6% accuracy at 10-15d vs 58.9% at 15d+. Duration gating is the single largest accuracy lever. Structural effect, not overfit."
+      },
+      "confidence_gate": {
+        "enabled": true,
+        "default_min_confidence": 0.3,
+        "description": "Below 0.30, even correct signals generate negligible karma. Conservative floor."
+      },
+      "voi_gate": {
+        "enabled": true,
+        "min_voi": 0.0,
+        "use_hazard_adjustment": false,
+        "description": "Core decision gate: only emit if E[karma|send] > 0. Hazard adjustment disabled because primary routing uses duration buckets directly."
+      },
+      "weak_symbol_gate": {
+        "enabled": true,
+        "severity_threshold": "MODERATE",
+        "description": "Symbols with MODERATE+ weakness get routed through intervention policy. MILD weakness passes through."
+      }
+    },
+    "symbols": {
+      "BTC": {
+        "min_duration_days": 15,
+        "min_confidence": 0.3,
+        "weak_symbol_policy": "NONE",
+        "weakness_score": 0.1615,
+        "weakness_severity": "NONE",
+        "accuracy": 0.509,
+        "voi_cells": {
+          "early": {
+            "voi": 0.005,
+            "accuracy": 0.48,
+            "n": 196,
+            "e_karma_send": 0.005
+          },
+          "mid": {
+            "voi": 0.008,
+            "accuracy": 0.5,
+            "n": 140,
+            "e_karma_send": 0.008
+          },
+          "mature": {
+            "voi": 0.024,
+            "accuracy": 0.54,
+            "n": 120,
+            "e_karma_send": 0.024
+          },
+          "late": {
+            "voi": 0.032,
+            "accuracy": 0.56,
+            "n": 76,
+            "e_karma_send": 0.032
+          }
+        },
+        "description": "BTC: marginal accuracy (50.9%). Early-duration VOI near zero. Passes duration gate at 15d."
+      },
+      "ETH": {
+        "min_duration_days": 15,
+        "min_confidence": 0.3,
+        "weak_symbol_policy": "NONE",
+        "weakness_score": 0.0213,
+        "weakness_severity": "NONE",
+        "accuracy": 0.543,
+        "voi_cells": {
+          "early": {
+            "voi": 0.012,
+            "accuracy": 0.51,
+            "n": 196,
+            "e_karma_send": 0.012
+          },
+          "mid": {
+            "voi": 0.02,
+            "accuracy": 0.53,
+            "n": 140,
+            "e_karma_send": 0.02
+          },
+          "mature": {
+            "voi": 0.038,
+            "accuracy": 0.57,
+            "n": 120,
+            "e_karma_send": 0.038
+          },
+          "late": {
+            "voi": 0.046,
+            "accuracy": 0.59,
+            "n": 76,
+            "e_karma_send": 0.046
+          }
+        },
+        "description": "ETH: strongest performer (54.3%). Positive VOI across all duration buckets."
+      },
+      "SOL": {
+        "min_duration_days": 0,
+        "min_confidence": 0.05,
+        "weak_symbol_policy": "INVERT",
+        "weight_factor": 0.5,
+        "weakness_score": 0.6979,
+        "weakness_severity": "SEVERE",
+        "inversion_justified": true,
+        "inversion_p_value": 0.0001,
+        "accuracy": 0.44,
+        "voi_cells": {
+          "early": {
+            "voi": -0.01,
+            "accuracy": 0.42,
+            "n": 196,
+            "e_karma_send": -0.01
+          },
+          "mid": {
+            "voi": -0.015,
+            "accuracy": 0.4,
+            "n": 140,
+            "e_karma_send": -0.015
+          },
+          "mature": {
+            "voi": -0.022,
+            "accuracy": 0.38,
+            "n": 120,
+            "e_karma_send": -0.022
+          },
+          "late": {
+            "voi": -0.028,
+            "accuracy": 0.36,
+            "n": 76,
+            "e_karma_send": -0.028
+          }
+        },
+        "description": "SOL: SEVERE weakness (0.6979). Accuracy 44.0%, CI excludes 50%. INVERT justified (p=0.0001). Duration gate disabled for SOL because inversion changes the accuracy profile."
+      },
+      "LINK": {
+        "min_duration_days": 15,
+        "min_confidence": 0.3,
+        "weak_symbol_policy": "NONE",
+        "weakness_score": 0.0654,
+        "weakness_severity": "NONE",
+        "accuracy": 0.566,
+        "voi_cells": {
+          "early": {
+            "voi": 0.018,
+            "accuracy": 0.53,
+            "n": 196,
+            "e_karma_send": 0.018
+          },
+          "mid": {
+            "voi": 0.028,
+            "accuracy": 0.55,
+            "n": 140,
+            "e_karma_send": 0.028
+          },
+          "mature": {
+            "voi": 0.044,
+            "accuracy": 0.59,
+            "n": 120,
+            "e_karma_send": 0.044
+          },
+          "late": {
+            "voi": 0.055,
+            "accuracy": 0.62,
+            "n": 76,
+            "e_karma_send": 0.055
+          }
+        },
+        "description": "LINK: strongest overall (56.6%). Positive VOI everywhere. Duration gate still applies because early-duration accuracy is lower."
+      }
+    },
+    "duration_buckets": [
+      {
+        "label": "early",
+        "min_days": 0,
+        "max_days": 12
+      },
+      {
+        "label": "mid",
+        "min_days": 12,
+        "max_days": 15
+      },
+      {
+        "label": "mature",
+        "min_days": 15,
+        "max_days": 18
+      },
+      {
+        "label": "late",
+        "min_days": 18,
+        "max_days": 9999
+      }
+    ],
+    "weibull_params": {
+      "SYSTEMIC": {
+        "shape": 2.1,
+        "scale": 18.5
+      },
+      "NEUTRAL": {
+        "shape": 1.8,
+        "scale": 22.0
+      },
+      "DIVERGENCE": {
+        "shape": 1.5,
+        "scale": 10.0
+      },
+      "EARNINGS": {
+        "shape": 1.3,
+        "scale": 7.0
+      }
+    }
+  },
+  "protocol_version": "1.0.0",
+  "limitations": [
+    {
+      "id": "SINGLE_REGIME_EVIDENCE",
+      "description": "Routing thresholds derived from SYSTEMIC-regime evidence. Thresholds may not be optimal for other regimes.",
+      "bias_direction": "INDETERMINATE",
+      "bias_magnitude": "High for non-SYSTEMIC regimes."
+    }
+  ]
+}
