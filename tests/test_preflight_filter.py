@@ -473,8 +473,8 @@ class TestVOIGate(unittest.TestCase):
         config["symbols"]["BTC"]["voi_cells"]["mature"]["accuracy"] = 0.50
         router = PreFlightRouter(config)
         report = router.route_signals([_make_signal("BTC")], duration_days=16.0)
-        # VOI = conf * (2*0.5 - 1) = 0, and min_voi=0, so >= passes
-        self.assertEqual(report["decisions"][0]["action"], "EMIT")
+        # VOI = conf * (2*0.5 - 1) = 0, strict inequality means 0 > 0 fails
+        self.assertEqual(report["decisions"][0]["action"], "WITHHOLD")
 
     def test_voi_result_in_decision(self):
         config = self._voi_config()

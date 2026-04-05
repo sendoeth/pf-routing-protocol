@@ -118,6 +118,7 @@ def compute_voi(accuracy: float, confidence: float,
         = confidence * (2 * accuracy - 1)
 
     Positive when accuracy > 50%. Negative when accuracy < 50%.
+    Zero-confidence signals produce VOI=0 and are flagged.
     """
     e_send = confidence * (2 * accuracy - 1)
     e_withhold = 0.0
@@ -130,27 +131,50 @@ def compute_voi(accuracy: float, confidence: float,
         "accuracy_estimate": round(accuracy, 6),
     }
 
+    # Flag zero-confidence as carrying no information
+    if confidence <= 0.0:
+        result["zero_confidence"] = True
+
     if hazard_params and duration_days > 0:
-        h = weibull_hazard(duration_days, hazard_params["shape"], hazard_params["scale"])
-        s = weibull_survival(duration_days, hazard_params["shape"], hazard_params["scale"])
-        result["hazard_adjustment"] = {
-            "hazard_rate": round(h, 6),
-            "survival_probability": round(s, 6),
-            "hazard_adjusted_voi": round(voi * s, 6),
-        }
+        # Validate Weibull params before use
+        if "shape" not in hazard_params or "scale" not in hazard_params:
+            result["hazard_skipped"] = True
+            result["hazard_skip_reason"] = (
+                f"Incomplete Weibull params: missing "
+                f"{[k for k in ('shape', 'scale') if k not in hazard_params]}"
+            )
+        else:
+            h = weibull_hazard(duration_days, hazard_params["shape"], hazard_params["scale"])
+            s = weibull_survival(duration_days, hazard_params["shape"], hazard_params["scale"])
+            result["hazard_adjustment"] = {
+                "hazard_rate": round(h, 6),
+                "survival_probability": round(s, 6),
+                "hazard_adjusted_voi": round(voi * s, 6),
+            }
 
     return result
 
 
 def assign_duration_bucket(duration_days: float,
                            buckets: Optional[List[Dict]] = None) -> str:
-    """Map regime duration to bucket label."""
+    """Map regime duration to bucket label.
+
+    Returns 'unknown' if duration falls in a gap between buckets rather
+    than silently falling through to the last bucket.
+    """
     if buckets is None:
         buckets = DEFAULT_DURATION_BUCKETS
+    if not buckets:
+        return "unknown"
     for bucket in buckets:
         if bucket["min_days"] <= duration_days < bucket["max_days"]:
             return bucket["label"]
-    return buckets[-1]["label"] if buckets else "unknown"
+    # Check if duration exceeds all buckets (legitimate overflow)
+    max_bucket = max(buckets, key=lambda b: b["max_days"])
+    if duration_days >= max_bucket["max_days"]:
+        return max_bucket["label"]
+    # Duration falls in a gap between buckets — return unknown
+    return "unknown"
 
 
 # ---------------------------------------------------------------------------
@@ -362,15 +386,21 @@ class PreFlightRouter:
             if use_hazard and "hazard_adjustment" in voi_result:
                 effective_voi = voi_result["hazard_adjustment"]["hazard_adjusted_voi"]
 
-            passed = effective_voi >= min_voi
+            # Strict inequality: VOI must be strictly positive to pass.
+            # Zero-confidence signals produce VOI=0 and should not be emitted.
+            passed = effective_voi > min_voi
             gate = {
                 "gate_id": "voi_gate",
                 "passed": passed,
                 "threshold": {"min_voi": min_voi},
                 "actual": effective_voi,
-                "description": f"VOI {effective_voi:+.4f} {'>='}  {min_voi}" if passed
-                    else f"VOI {effective_voi:+.4f} < {min_voi} threshold",
+                "description": f"VOI {effective_voi:+.4f} > {min_voi}" if passed
+                    else f"VOI {effective_voi:+.4f} <= {min_voi} threshold",
             }
+            if voi_result.get("zero_confidence"):
+                gate["description"] += " (zero-confidence signal)"
+            if voi_result.get("hazard_skipped"):
+                gate["description"] += f" (hazard skipped: {voi_result.get('hazard_skip_reason', 'incomplete params')})"
             (gates_passed if passed else gates_failed).append(gate)
 
         # --- Gate 5: Weak Symbol Gate ---
@@ -502,6 +532,20 @@ class PreFlightRouter:
         """Detect and report structural limitations of the routing."""
         limitations = []
 
+        # Check for UNKNOWN regime (may indicate null/missing regime_context)
+        if regime_id == "UNKNOWN":
+            limitations.append({
+                "id": "UNKNOWN_REGIME",
+                "description": (
+                    "Routing used regime_id=UNKNOWN. This typically means "
+                    "regime_context was null or missing from the input signals. "
+                    "All regime-dependent gates (regime_gate, VOI hazard adjustment) "
+                    "may produce incorrect results."
+                ),
+                "bias_direction": "INDETERMINATE",
+                "bias_magnitude": "High — routing decisions not calibrated for actual regime."
+            })
+
         # Check if all signals were filtered
         n_emit = sum(1 for d in decisions if d["action"] == "EMIT")
         n_invert = sum(1 for d in decisions if d["action"] == "INVERT")
@@ -539,6 +583,34 @@ class PreFlightRouter:
                 "bias_direction": "INDETERMINATE",
                 "bias_magnitude": "Moderate for affected cells."
             })
+
+        # Check for incomplete Weibull params (hazard adjustment may be silently skipped)
+        voi_gate = self.gates.get("voi_gate", {})
+        if voi_gate.get("use_hazard_adjustment", False):
+            missing_regimes = []
+            incomplete_regimes = []
+            for rid in ["SYSTEMIC", "NEUTRAL", "DIVERGENCE", "EARNINGS"]:
+                wp = self.weibull_params.get(rid)
+                if wp is None:
+                    missing_regimes.append(rid)
+                elif "shape" not in wp or "scale" not in wp:
+                    incomplete_regimes.append(rid)
+            if missing_regimes or incomplete_regimes:
+                parts = []
+                if missing_regimes:
+                    parts.append(f"missing for: {', '.join(missing_regimes)}")
+                if incomplete_regimes:
+                    parts.append(f"incomplete for: {', '.join(incomplete_regimes)}")
+                limitations.append({
+                    "id": "INCOMPLETE_HAZARD_PARAMS",
+                    "description": (
+                        f"Weibull hazard params {'; '.join(parts)}. "
+                        f"Hazard adjustment will be skipped for these regimes, "
+                        f"producing non-hazard-adjusted VOI."
+                    ),
+                    "bias_direction": "OVERSTATED",
+                    "bias_magnitude": "Moderate — VOI not adjusted for regime duration risk."
+                })
 
         return limitations
 
